@@ -82,9 +82,17 @@ pxMemset32(void *p, int v, size_t n)
     int *ip = (int *) p;
     __m128i vec = _mm_set1_epi32(v); 
     n &= 3;
-    while (cnt--) {
-        _mm_storeu_si128((__m128i *) ip, vec);
-        ip += 4; 
+    /* check pointer alignment */
+    if ( (((uintptr_t) ip ) & 15) == 0 ) {
+        while (cnt--) {
+            _mm_store_si128((__m128i *) ip, vec);
+            ip += 4; 
+        }
+    } else {
+        while (cnt--) {
+            _mm_storeu_si128((__m128i *) ip, vec);
+            ip += 4; 
+        }
     }
     while (n--)
         *ip++ = v; 
@@ -104,10 +112,33 @@ pxClearColor(struct pxBitmap *bitmap, unsigned color)
              ((color & 0xFF0000) >> 16 << bitmap->shift[2]); 
     stride = bitmap->pitch >> 2; 
 
-    for (unsigned y = 0; y < bitmap->height; y++) {
-        pxMemset32(data, fcolor, bitmap->width);
-        data += stride; 
+    if (bitmap->width == stride)
+        pxMemset32(data, fcolor, bitmap->width * bitmap->height); 
+    else {
+        for (unsigned y = 0; y < bitmap->height; y++) {
+            pxMemset32(data, fcolor, bitmap->width);
+            data += stride; 
+        }
     }
+}
+
+static inline void 
+pxClearHLine(struct pxBitmap *bitmap, unsigned y, unsigned x0, unsigned x1, unsigned color)
+{
+    unsigned *data, fcolor;
+
+    PIX_ASSERT(bitmap != NULL);
+    PIX_ASSERT(x0 <= x1);
+    PIX_ASSERT(x1 < bitmap->width); 
+    PIX_ASSERT(y < bitmap->height);
+
+    data = (void *) bitmap->data;
+    data += (bitmap->pitch >> 2) * y + x0; 
+    fcolor = ((color & 0xFF)           << bitmap->shift[0]) |
+             ((color & 0xFF00)   >>  8 << bitmap->shift[1]) |
+             ((color & 0xFF0000) >> 16 << bitmap->shift[2]); 
+
+    pxMemset32(data, fcolor, x1 - x0); 
 }
 
 static inline void
@@ -133,6 +164,97 @@ pxDrawLine(struct pxBitmap *bitmap, int x0, int y0, int x1, int y1, unsigned col
         pxSetPixelBounded(bitmap, (int) (x + 0.5F), (int) (y + 0.5F), color);
         x += dx;
         y += dy;
+    }
+}
+
+typedef struct
+pxVec2
+{
+    float x, y; 
+} pxVec2;    
+
+static inline pxVec2
+pxAddVec2(pxVec2 a, pxVec2 b)
+{
+    return (pxVec2) { a.x + b.x, a.y + b.y };
+}
+
+static inline pxVec2
+pxSubtractVec2(pxVec2 b, pxVec2 a)
+{
+    return (pxVec2) { b.x - a.x, b.y - a.y }; 
+}
+
+static inline pxVec2
+pxScalarDivideVec2(pxVec2 a, float s)
+{
+    if (FP_ZERO == fpclassify(s))
+        return a; 
+    return (pxVec2) { a.x / s, a.y / s };
+}
+
+static inline void
+pxFloorVec2(pxVec2 *a)
+{
+    a->x = (int) a->x;
+    a->y = (int) a->y;
+}
+
+static inline float 
+pxClampf(float val, float min, float max)
+{
+    return val <  min ? min :
+           val >= max ? max - 1 : val;  
+}
+
+static inline void 
+pxDrawTriangle(struct pxBitmap *bitmap, pxVec2 a, pxVec2 b, pxVec2 c, unsigned color)
+{
+    pxVec2 tmp, p0, p1, d0, d1, d2;
+    int steps[3];
+    PIX_ASSERT(bitmap != NULL);
+    pxFloorVec2(&a); pxFloorVec2(&b); pxFloorVec2(&c); 
+    /* order by y-coordinate */
+    if (a.y > b.y) {
+        tmp = a;
+        a = b;
+        b = tmp;
+    }
+    if (b.y > c.y) {
+        tmp = b;
+        b = c;
+        c = tmp;
+    }
+    if (a.y > b.y) {
+        tmp = a;
+        a = b;
+        b = tmp;
+    }
+    if ((int) b.y == (int) c.y && b.x < c.x) {
+        tmp = b;
+        b = c;
+        c = tmp;
+    }
+    p0.x = p1.x = a.x;
+    p0.y = p1.y = a.y;
+    d0 = pxSubtractVec2(b, a); d1 = pxSubtractVec2(c, a); d2 = pxSubtractVec2(c, b);
+    steps[0] = d0.y; steps[1] = d0.y + d2.y; steps[2] = d2.y;
+    d0 = pxScalarDivideVec2(d0, steps[0]); 
+    d1 = pxScalarDivideVec2(d1, steps[1]);
+    d2 = pxScalarDivideVec2(d2, steps[2]);
+    if (!steps[0])
+        p0 = b;
+    while (steps[0]--) {
+        if (p0.y >= 0 && p0.y < bitmap->height)
+            pxClearHLine(bitmap, p0.y, pxClampf(p1.x, 0, bitmap->width), pxClampf(p0.x, 0, bitmap->width), color);
+        p0 = pxAddVec2(p0, d0);
+        p1 = pxAddVec2(p1, d1); 
+    }
+    while (steps[2]-- >= 0) {
+        if (p0.y >= 0 && p0.y < bitmap->height)
+            pxClearHLine(bitmap, p0.y, pxClampf(p1.x, 0, bitmap->width), pxClampf(p0.x, 0, bitmap->width), color);
+        p0 = pxAddVec2(p0, d2);
+        p1 = pxAddVec2(p1, d1); 
     }
 }
 

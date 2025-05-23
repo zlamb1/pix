@@ -1,3 +1,4 @@
+#include <sys/types.h>
 #include <time.h>
 #include <stdio.h>
 
@@ -10,10 +11,14 @@ static struct pxBitmap *bitmap;
 static inline void 
 drawBitmap(void)
 {
+    static float t = 0; 
+    pxVec2 a = { 100, 300 }, b = { 200, 150 * fabs(cos(t)) }, c = { 350, 300 };
     PIX_CLOCK_START();
-    pxClearColor(bitmap, 0x000000FF);
+    pxClearColor(bitmap, 0x0000FF00);
+    pxDrawTriangle(bitmap, a, b, c, 0x00FF0000);
     PIX_CLOCK_END();
     PIX_CLOCK_PRINT();
+    t += 0.001f;
 }
 
 static void
@@ -41,7 +46,7 @@ main(void)
     pxWindowSetTitle(win, "X11 Demo");
 
     bitmap = pxWindowGetBitmap(win, NULL);
-
+    
     while (!pxWindowShouldClose(win)) {
         drawBitmap();
         pxWindowBlitBitmap(win, bitmap); 

@@ -16,7 +16,6 @@ pxColorRgba
 #define pxColor_Blue   __pxMakeOpaqueColor(0,   0,   255)
 #define pxColor_Cyan   __pxMakeOpaqueColor(0,   255, 255)
 #define pxColor_Purple __pxMakeOpaqueColor(255, 0,   255)
-#undef __pxMakeColor
 
 static inline pxColorRgba 
 pxColorInterpolate(unsigned ncomp, pxColorRgba *colors, double *values)

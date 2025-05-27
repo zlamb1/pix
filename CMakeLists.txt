@@ -17,8 +17,8 @@ target_compile_options(${LIB_NAME} PRIVATE
     -Wno-missing-braces -Wno-missing-field-initializers -Wbad-function-cast -Winline -Wundef
     -Wunreachable-code -Wlogical-op -Wredundant-decls -Wfloat-equal -Wcast-align -Wcast-qual
     -Wdeclaration-after-statement -Wmissing-include-dirs -Wnested-externs -Wsequence-point
-    -Wswitch -Wunused-but-set-parameter -Wwrite-strings -Wunused-result
-    -pedantic-errors --param max-inline-insns-single=1000 -O2
+    -Wswitch -Wunused-but-set-parameter -Wwrite-strings -Wunused-result -pedantic-errors 
+    --param max-inline-insns-single=1000 -O2
 )
 
 target_compile_options(${LIB_NAME} PUBLIC -O2 -msse2 -mavx)
@@ -58,5 +58,10 @@ target_link_libraries(${LIB_NAME}_exe ${PROJECT_NAME})
 add_executable(blend2d_test test/blend2d.c)
 set(BLEND2D_STATIC TRUE)
 include("${CMAKE_CURRENT_LIST_DIR}/vendor/blend2d/CMakeLists.txt")
-target_link_libraries(blend2d_test ${LIB_NAME})
 target_link_libraries(blend2d_test blend2d::blend2d)
+target_link_libraries(blend2d_test ${LIB_NAME})
+
+add_executable(skia_test test/skia.cpp)
+target_include_directories(skia_test PRIVATE ${CMAKE_CURRENT_LIST_DIR}/vendor/skia)
+target_link_libraries(skia_test ${CMAKE_CURRENT_LIST_DIR}/vendor/skia/out/Shared/libskia.so)
+target_link_libraries(skia_test ${LIB_NAME})

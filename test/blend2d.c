@@ -1,5 +1,4 @@
 #include <blend2d.h>
-#include <blend2d/context.h>
 #include <stdlib.h>
 
 #include "libperf/pix_clock.h"
@@ -19,7 +18,7 @@ static BLContextCore ctx;
     do { \
         BLResult result = (CALL); \
         if ((result) != BL_SUCCESS) { \
-            printf("blCallFailed: %u", result); \
+            printf("blCallFailed: %u\n", result); \
             exit(-1); \
         } \
     } while (0)
@@ -32,10 +31,26 @@ initB2D(unsigned width, unsigned height)
     BL_CALL(blContextInitAs(&ctx, &img, NULL));
 }
 
+static inline void
+drawFrame()
+{
+    BLPoint d[3] = {
+        { 100, 300 },
+        { 200, 150 },
+        { 350, 300 }
+    };
+    PIX_CLOCK_START();
+    BL_CALL(blContextFillAllRgba32(&ctx, 0xFF000000));
+    for (unsigned i = 0; i < 10000; ++i)
+        BL_CALL(blContextFillGeometryRgba32(&ctx, BL_GEOMETRY_TYPE_TRIANGLE, &d, 0xFFFFFFF));
+    BL_CALL(blContextFlush(&ctx, BL_CONTEXT_FLUSH_SYNC));
+    PIX_CLOCK_END();
+    PIX_CLOCK_PRINT();
+}
+
 static void
 winExposeCallback(struct pxWindow *win)
 {
-    pxWindowBlitBitmap(win, bitmap); 
 }
 
 static void 
@@ -61,11 +76,7 @@ main(void)
     initB2D(bitmap->width, bitmap->height); 
 
     while (!pxWindowShouldClose(win)) {
-        pxClearColor(bitmap, 0x00FF00FF);
-        PIX_CLOCK_START();
-        BL_CALL(blContextFillAllRgba32(&ctx, 0xFFFF0000));
-        PIX_CLOCK_END();
-        PIX_CLOCK_PRINT();
+        drawFrame(); 
         pxWindowBlitBitmap(win, bitmap); 
         pxWindowPollEvents(win);
     }

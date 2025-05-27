@@ -1,3 +1,4 @@
+#include "libwin/pix_color.h"
 #ifndef PIX_BITMAP_H
 #define PIX_BITMAP_H 1
 
@@ -85,12 +86,13 @@ pxMemset32(void *p, int v, size_t n)
     /* check pointer alignment */
     if ( (((uintptr_t) ip ) & 15) == 0 ) {
         while (cnt--) {
-            _mm_store_si128((__m128i *) ip, vec);
+            _mm_store_si128((__m128i *) __builtin_assume_aligned(ip, 16), vec);
             ip += 4; 
         }
     } else {
         while (cnt--) {
-            _mm_storeu_si128((__m128i *) ip, vec);
+            /* unaligned casts are defined for vector intrinsics */
+            _mm_storeu_si128((__m128i *) (void *) ip, vec);
             ip += 4; 
         }
     }
@@ -106,7 +108,7 @@ pxClearColor(struct pxBitmap *bitmap, unsigned color)
 
     PIX_ASSERT(bitmap != NULL)
     
-    data = (void *) bitmap->data;
+    data = (unsigned *) __builtin_assume_aligned(bitmap->data, 4);
     fcolor = ((color & 0xFF)           << bitmap->shift[0]) |
              ((color & 0xFF00)   >>  8 << bitmap->shift[1]) |
              ((color & 0xFF0000) >> 16 << bitmap->shift[2]); 
@@ -132,7 +134,7 @@ pxClearHLine(struct pxBitmap *bitmap, unsigned y, unsigned x0, unsigned x1, unsi
     PIX_ASSERT(x1 < bitmap->width); 
     PIX_ASSERT(y < bitmap->height);
 
-    data = (void *) bitmap->data;
+    data = (unsigned *) __builtin_assume_aligned(bitmap->data, 4);
     data += (bitmap->pitch >> 2) * y + x0; 
     fcolor = ((color & 0xFF)           << bitmap->shift[0]) |
              ((color & 0xFF00)   >>  8 << bitmap->shift[1]) |
@@ -173,6 +175,12 @@ pxVec2
     float x, y; 
 } pxVec2;    
 
+typedef struct
+pxVec3
+{
+    float x, y, z; 
+} pxVec3; 
+
 static inline pxVec2
 pxAddVec2(pxVec2 a, pxVec2 b)
 {
@@ -200,6 +208,35 @@ pxFloorVec2(pxVec2 *a)
     a->y = (int) a->y;
 }
 
+static inline pxVec2
+pxMinVec2(pxVec2 a, pxVec2 b)
+{
+    return (pxVec2) { 
+        .x = a.x < b.x ? a.x : b.x, 
+        .y = a.y < b.y ? a.y : b.y
+    };
+}
+
+static inline pxVec2
+pxMaxVec2(pxVec2 a, pxVec2 b)
+{
+    return (pxVec2) { 
+        .x = a.x < b.x ? b.x : a.x, 
+        .y = a.y < b.y ? b.y : a.y
+    };
+}
+
+static inline pxVec2
+pxClampVec2(pxVec2 v, pxVec2 min, pxVec2 max)
+{
+    return (pxVec2) {
+        .x = v.x <  min.x ? min.x :
+             v.x >= max.x ? max.x - 1 : v.x,
+        .y = v.y <  min.y ? min.y :
+             v.y >= max.y ? max.y - 1 : v.y,
+    };
+}
+
 static inline float 
 pxClampf(float val, float min, float max)
 {
@@ -207,54 +244,48 @@ pxClampf(float val, float min, float max)
            val >= max ? max - 1 : val;  
 }
 
-static inline void 
-pxDrawTriangle(struct pxBitmap *bitmap, pxVec2 a, pxVec2 b, pxVec2 c, unsigned color)
+static inline double 
+pxSignedArea(pxVec2 a, pxVec2 b, pxVec2 c)
 {
-    pxVec2 tmp, p0, p1, d0, d1, d2;
-    int steps[3];
+    return 0.5 * (a.x * (b.y - c.y) +
+           b.x * (c.y - a.y) +
+           c.x * (a.y - b.y));
+}
+
+static inline void 
+pxDrawTriangle(struct pxBitmap *bitmap, pxVec2 a, pxVec2 b, pxVec2 c, pxColorRgba colors[3])
+{
+    pxVec2 bbBoxMin = pxMinVec2(pxMinVec2(a, b), c), 
+           bbBoxMax = pxMaxVec2(pxMaxVec2(a, b), c),
+           minClip  = { .x = 0, .y = 0 },
+           maxClip; 
+    double signedArea = pxSignedArea(a, b, c); 
     PIX_ASSERT(bitmap != NULL);
-    pxFloorVec2(&a); pxFloorVec2(&b); pxFloorVec2(&c); 
-    /* order by y-coordinate */
-    if (a.y > b.y) {
-        tmp = a;
-        a = b;
-        b = tmp;
-    }
-    if (b.y > c.y) {
-        tmp = b;
-        b = c;
-        c = tmp;
-    }
-    if (a.y > b.y) {
-        tmp = a;
-        a = b;
-        b = tmp;
-    }
-    if ((int) b.y == (int) c.y && b.x < c.x) {
-        tmp = b;
-        b = c;
-        c = tmp;
-    }
-    p0.x = p1.x = a.x;
-    p0.y = p1.y = a.y;
-    d0 = pxSubtractVec2(b, a); d1 = pxSubtractVec2(c, a); d2 = pxSubtractVec2(c, b);
-    steps[0] = d0.y; steps[1] = d0.y + d2.y; steps[2] = d2.y;
-    d0 = pxScalarDivideVec2(d0, steps[0]); 
-    d1 = pxScalarDivideVec2(d1, steps[1]);
-    d2 = pxScalarDivideVec2(d2, steps[2]);
-    if (!steps[0])
-        p0 = b;
-    while (steps[0]--) {
-        if (p0.y >= 0 && p0.y < bitmap->height)
-            pxClearHLine(bitmap, p0.y, pxClampf(p1.x, 0, bitmap->width), pxClampf(p0.x, 0, bitmap->width), color);
-        p0 = pxAddVec2(p0, d0);
-        p1 = pxAddVec2(p1, d1); 
-    }
-    while (steps[2]-- >= 0) {
-        if (p0.y >= 0 && p0.y < bitmap->height)
-            pxClearHLine(bitmap, p0.y, pxClampf(p1.x, 0, bitmap->width), pxClampf(p0.x, 0, bitmap->width), color);
-        p0 = pxAddVec2(p0, d2);
-        p1 = pxAddVec2(p1, d1); 
+    maxClip = (pxVec2) { .x = bitmap->width, .y = bitmap->height }; 
+    if (fpclassify(signedArea) == FP_ZERO)
+        return;
+    pxFloorVec2(&bbBoxMin); pxFloorVec2(&bbBoxMax);
+    bbBoxMin = pxClampVec2(bbBoxMin, minClip, maxClip);
+    bbBoxMax = pxClampVec2(bbBoxMax, minClip, maxClip);
+    for (unsigned y = bbBoxMin.y; y < bbBoxMax.y; ++y) {
+        int hasDrawn = 0;
+        for (unsigned x = bbBoxMin.x; x < bbBoxMax.x; ++x) {
+            pxVec2 p = {
+                x + 0.5, y + 0.5
+            };
+            double bc[3];
+            bc[0] = pxSignedArea(p, b, c) / signedArea;
+            bc[1] = pxSignedArea(p, c, a) / signedArea;
+            bc[2] = pxSignedArea(p, a, b) / signedArea;
+            if ( bc[0] > 0.0 && bc[1] > 0.0 && bc[2] > 0.0 ) {
+                pxColorRgba color = pxColorInterpolate(3, colors, bc); 
+                unsigned pixelColor = ((unsigned) (color.r))      | 
+                                      ((unsigned) (color.g) << 8) |
+                                      ((unsigned) (color.b) << 16); 
+                hasDrawn = 1; 
+                pxSetPixel(bitmap, x, y, pixelColor);
+            } else if (hasDrawn) break;
+        }
     }
 }
 

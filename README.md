@@ -6,6 +6,6 @@
 
 The project contains tests for blend2d and Skia for performance comparison.
 
-If you want to those tests to be built, install blend2d and Skia into a vendors directory in the top-level project directory.
+If you want to those tests to be built, install blend2d and Skia into a vendor/ directory in the top-level of the project.
 
-Skia must be prebuilt into the directory vendors/Skia/out/Shared. Blend2d will be built accompanying the project with its CMake configuration. 
+Skia must be prebuilt into the directory vendor/Skia/out/Shared. Blend2d will be built accompanying the project with its CMake configuration. 

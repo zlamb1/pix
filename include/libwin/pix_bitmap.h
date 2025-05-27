@@ -1,4 +1,3 @@
-#include "libwin/pix_color.h"
 #ifndef PIX_BITMAP_H
 #define PIX_BITMAP_H 1
 
@@ -13,6 +12,8 @@
 #include <xmmintrin.h>
 
 #include "pix_assert.h"
+#include "pix_color.h"
+#include "pix_vec2.h"
 
 struct 
 pxBitmap 
@@ -38,19 +39,11 @@ pxGetPixel(struct pxBitmap *bitmap, int x, int y)
 {
     unsigned bufcolor;
     PIX_ASSERT(bitmap != NULL);
-
+    PIX_ASSERT((x | y) >= 0 && x < (long long) bitmap->width && y < (long long) bitmap->height);
     bufcolor = (unsigned) bitmap->data[y * bitmap->pitch + x * bitmap->bytesPerPixel];
     return ((bufcolor & bitmap->mask[0]) >> bitmap->shift[0])        |
            (((bufcolor & bitmap->mask[1]) >> bitmap->shift[1]) << 8) |
            (((bufcolor & bitmap->mask[2]) >> bitmap->shift[2]) << 16);
-}
-
-static inline unsigned 
-pxGetPixelBounded(struct pxBitmap *bitmap, int x, int y)
-{
-    PIX_ASSERT(bitmap != NULL);
-    PIX_ASSERT((x | y) < 0 || x >= (long long) bitmap->width || y >= (long long) bitmap->height);
-    return pxGetPixel(bitmap, x, y);
 }
 
 static inline void 
@@ -68,7 +61,7 @@ pxSetPixel(struct pxBitmap *bitmap, int x, int y, unsigned color)
 }
 
 static inline void 
-pxSetPixelBounded(struct pxBitmap *bitmap, int x, int y, unsigned color)
+pxSetPixelSafe(struct pxBitmap *bitmap, int x, int y, unsigned color)
 {
     PIX_ASSERT(bitmap != NULL);
     if ((x | y) < 0 || x >= (long long) bitmap->width || y >= (long long) bitmap->height)
@@ -152,7 +145,7 @@ pxDrawLine(struct pxBitmap *bitmap, int x0, int y0, int x1, int y1, unsigned col
     PIX_ASSERT(bitmap != NULL); 
 
     if (!steps) {
-        pxSetPixelBounded(bitmap, x0, y0, color);
+        pxSetPixelSafe(bitmap, x0, y0, color);
         return; 
     }
 
@@ -163,85 +156,10 @@ pxDrawLine(struct pxBitmap *bitmap, int x0, int y0, int x1, int y1, unsigned col
     y = y0;
 
     while (steps-- >= 0) {
-        pxSetPixelBounded(bitmap, (int) (x + 0.5F), (int) (y + 0.5F), color);
+        pxSetPixelSafe(bitmap, (int) (x + 0.5F), (int) (y + 0.5F), color);
         x += dx;
         y += dy;
     }
-}
-
-typedef struct
-pxVec2
-{
-    float x, y; 
-} pxVec2;    
-
-typedef struct
-pxVec3
-{
-    float x, y, z; 
-} pxVec3; 
-
-static inline pxVec2
-pxAddVec2(pxVec2 a, pxVec2 b)
-{
-    return (pxVec2) { a.x + b.x, a.y + b.y };
-}
-
-static inline pxVec2
-pxSubtractVec2(pxVec2 b, pxVec2 a)
-{
-    return (pxVec2) { b.x - a.x, b.y - a.y }; 
-}
-
-static inline pxVec2
-pxScalarDivideVec2(pxVec2 a, float s)
-{
-    if (FP_ZERO == fpclassify(s))
-        return a; 
-    return (pxVec2) { a.x / s, a.y / s };
-}
-
-static inline void
-pxFloorVec2(pxVec2 *a)
-{
-    a->x = (int) a->x;
-    a->y = (int) a->y;
-}
-
-static inline pxVec2
-pxMinVec2(pxVec2 a, pxVec2 b)
-{
-    return (pxVec2) { 
-        .x = a.x < b.x ? a.x : b.x, 
-        .y = a.y < b.y ? a.y : b.y
-    };
-}
-
-static inline pxVec2
-pxMaxVec2(pxVec2 a, pxVec2 b)
-{
-    return (pxVec2) { 
-        .x = a.x < b.x ? b.x : a.x, 
-        .y = a.y < b.y ? b.y : a.y
-    };
-}
-
-static inline pxVec2
-pxClampVec2(pxVec2 v, pxVec2 min, pxVec2 max)
-{
-    return (pxVec2) {
-        .x = v.x <  min.x ? min.x :
-             v.x >= max.x ? max.x - 1 : v.x,
-        .y = v.y <  min.y ? min.y :
-             v.y >= max.y ? max.y - 1 : v.y,
-    };
-}
-
-static inline float 
-pxClampf(float val, float min, float max)
-{
-    return val <  min ? min :
-           val >= max ? max - 1 : val;  
 }
 
 static inline double 

@@ -90,5 +90,7 @@ main(void)
         glfwPollEvents();
         deltaTime = glfwGetTime() - timeCurrent; 
     }
+    glfwDestroyWindow(window);
+    glfwTerminate(); 
     return 0;
 }

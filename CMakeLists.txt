@@ -57,17 +57,7 @@ else()
     message(FATAL_ERROR "unsupported system")
 endif()
 
-function(create_example TARGET_NAME SRC_FILES)
-    add_executable("${TARGET_NAME}" "${SRC_FILES}")
-    if (WIN32)
-        set_target_properties("${TARGET_NAME}" PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-    endif()
-    target_link_libraries("${TARGET_NAME}" "${LIB_NAME}")
-endfunction()
-
-create_example("example_sf" "examples/sf_blit.c")
-create_example("example_hw" "examples/hw_blit.c")
-create_example("example_glfw" "examples/glfw_blit.c")
+include(examples/CMakeLists.txt)
 
 function(folder_exists PATH_NAME)
     get_filename_component(RESOLVED_PATH "${PATH_NAME}" REALPATH)

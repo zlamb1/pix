@@ -55,12 +55,12 @@ main(void)
     GLFWwindow *window;
     unsigned frames = 0; 
     double timeStart, timeCurrent, timeDelta;
-    char title[32]; 
+    char title[64]; 
     if ( glfwInit() != GLFW_TRUE ) {
         printf("failed to init GLFW\n"); 
         return -1;
     }
-    window = glfwCreateWindow(500, 500, "Win32 Demo", NULL, NULL); 
+    window = glfwCreateWindow(500, 500, "Win32 Demo [GLFW]", NULL, NULL); 
     if ( window == NULL ) {
         const char *desc; 
         glfwGetError(&desc);
@@ -81,7 +81,7 @@ main(void)
         if ( timeDelta >= 1.0 ) {
             timeStart = timeCurrent;
             double fps = frames / timeDelta;
-            snprintf(title, sizeof(title), "Win32 Demo - FPS %u/%.2fms", (unsigned) fps, 1000.0 / fps); 
+            snprintf(title, sizeof(title), "Win32 Demo - FPS %u/%.2fms [GLFW]", (unsigned) fps, 1000.0 / fps); 
             glfwSetWindowTitle(window, title);
             frames = 0; 
         }

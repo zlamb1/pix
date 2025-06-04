@@ -68,7 +68,7 @@ renderThread(void *p)
     pxWindow *window = (pxWindow *) p;
     unsigned frames = 0; 
     double fpsStart, fpsCurrent, fpsDelta;
-    char title[32];
+    char title[64];
     if ( pxInitFrameBitmap(window, NULL, &bitmap) != PIX_SUCCESS ) {
         // FIXME: close window
         return NULL; 
@@ -81,7 +81,7 @@ renderThread(void *p)
         if ( fpsDelta >= 1.0 ) {
             fpsStart = fpsCurrent;
             double fps = frames / fpsDelta;
-            snprintf(title, 32, "Win32 Demo - FPS %u/%.2fms", (unsigned) fps, 1000.0 / fps); 
+            snprintf(title, sizeof(title), "Win32 Demo - FPS %u/%.2fms [SF]", (unsigned) fps, 1000.0 / fps); 
             pxWindowSetTitle(window, title);
             frames = 0;
         }
@@ -101,7 +101,7 @@ main(void)
     if ( pxInitWindow(NULL, &window) != PIX_SUCCESS ) 
         return -2;
     pxWindowSetSizeCallback(window, windowSizeCallback);
-    pxWindowSetTitle(window, "Win32 Demo"); 
+    pxWindowSetTitle(window, "Win32 Demo [SF]"); 
     pxThread *thread = pxCreateThread(renderThread, window);
     while ( !pxWindowShouldClose(window) ) {
         pxWindowQueueEvents(window, PIX_TRUE);

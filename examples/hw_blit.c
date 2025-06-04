@@ -39,14 +39,14 @@ drawFrame()
         interpolateColors(pxColor_Blue, pxColor_Red, pxColor_Green, t)
     };
     glClear(GL_COLOR_BUFFER_BIT);
-    /*glBegin(GL_TRIANGLES);
+    glBegin(GL_TRIANGLES);
     glColor3f(colors[0].r / 255.0, colors[0].g / 255.0, colors[0].b / 255.0); 
     glVertex3f(-0.5, -0.5, 0.0);
     glColor3f(colors[1].r / 255.0, colors[1].g / 255.0, colors[1].b / 255.0); 
     glVertex3f( 0.0,  0.5, 0.0);
     glColor3f(colors[2].r / 255.0, colors[2].g / 255.0, colors[2].b / 255.0); 
     glVertex3f( 0.5, -0.5, 0.0);
-    glEnd();*/
+    glEnd();
     t += deltaTime; 
 }
 
@@ -56,7 +56,7 @@ renderThread(void *arg)
     pxWindow *window = (pxWindow *) arg;
     unsigned frames = 0; 
     double fpsStart, fpsCurrent, fpsDelta;
-    char title[32];
+    char title[64];
     if ( pxMakeContextCurrent(window) != PIX_SUCCESS ) {
         pxCloseWindow(window);
         pxExitThread(NULL);
@@ -70,7 +70,7 @@ renderThread(void *arg)
         if ( fpsDelta >= 1.0 ) {
             fpsStart = fpsCurrent;
             double fps = frames / fpsDelta;
-            snprintf(title, 32, "Win32 Demo - FPS %u/%.2fms", (unsigned) fps, 1000.0 / fps); 
+            snprintf(title, sizeof(title), "Win32 Demo - FPS %u/%.2fms [HW]", (unsigned) fps, 1000.0 / fps); 
             pxWindowSetTitle(window, title);
             frames = 0;
         }
@@ -93,7 +93,7 @@ main(void)
     if ( pxInitWindow(&windowTags, &window) != PIX_SUCCESS ) 
         return -2;\
     pxWindowSetSizeCallback(window, windowSizeCallback);
-    pxWindowSetTitle(window, "Win32 Demo"); 
+    pxWindowSetTitle(window, "Win32 Demo [HW]"); 
     thread = pxCreateThread(renderThread, window);
     while ( !pxWindowShouldClose(window) )
         pxWindowQueueEvents(window, PIX_TRUE);

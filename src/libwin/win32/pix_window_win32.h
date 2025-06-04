@@ -8,9 +8,6 @@
 #include "libthread/pix_thread.h"
 
 #include "../pix_window_internal.h"
-#include "pix_window_event_win32.h"
-
-#define PIX_WINDOW_EVENT_QUEUE_SIZE 1024
 
 #define PIX_GET_WIN32_INSTANCE(W) \
     pxWindowWin32 *window; \
@@ -24,10 +21,6 @@ pxWindowWin32
     HWND win32HWND; 
     HDC win32HDC;
     HGLRC win32OpenGLCtx;
-    pxBool isQueuing; 
-    pxSemaphore *eventQueueSemaphore; 
-    pxMutex *eventQueueMutex;
-    pxWindowEvent eventQueue[PIX_WINDOW_EVENT_QUEUE_SIZE], *eventStart, *eventEnd;
 } pxWindowWin32;
 
 #endif

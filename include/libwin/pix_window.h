@@ -4,14 +4,16 @@
 #include "libbase/pix_type.h"
 
 #include "libwin/pix_bitmap.h"
+#include "libwin/pix_window_event.h"
 
 typedef enum
 pxWindowTag
 {
-    PIX_WINDOW_TAG_POS        = 0x1,
-    PIX_WINDOW_TAG_SIZE       = 0x2,
-    PIX_WINDOW_TAG_TITLE      = 0x4,
-    PIX_WINDOW_TAG_GL_CONTEXT = 0x8
+    PIX_WINDOW_TAG_POS         = 0x01,
+    PIX_WINDOW_TAG_SIZE        = 0x02,
+    PIX_WINDOW_TAG_TITLE       = 0x04,
+    PIX_WINDOW_TAG_GL_CONTEXT  = 0x08,
+    PIX_WINDOW_TAG_EVENT_MASK  = 0x10
 } pxWindowTag;
 
 typedef struct
@@ -21,6 +23,7 @@ pxWindowTags
     pxInt x, y; 
     pxUnsigned width, height;
     pxChar *title; 
+    pxWindowEventTypeMask eventMask; 
 } pxWindowTags;
 
 typedef struct 

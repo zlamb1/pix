@@ -10,7 +10,7 @@
         },
         {
             "name": "debug_ninja_clang",
-            "displayName": "Debug",
+            "displayName": "Debug: Ninja Clang",
             "generator": "Ninja",
             "binaryDir": "build/debug",
             "inherits": "gcc_clang_common",
@@ -20,13 +20,18 @@
         },
         {
             "name": "release_ninja_clang",
-            "displayName": "Release",
+            "displayName": "Release: Ninja Clang",
             "generator": "Ninja",
             "binaryDir": "build/release",
             "inherits": "gcc_clang_common",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release"
             }
+        },
+        {
+            "name": "debug_vs_17_2022",
+            "displayName": "Debug: Visual Studio 17 2022",
+            "generator": "Visual Studio 17 2022"
         }
     ]
 }

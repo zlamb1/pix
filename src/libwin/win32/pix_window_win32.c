@@ -16,12 +16,6 @@ static const pxWindowTags defWindowTags = {
     .tags = 0
 };
 
-static pxResult
-_pxEnqueueEvent(pxWindowWin32 *window, pxWindowEvent event, pxBool overwrite);
-
-static pxResult
-_pxDequeueEvent(pxWindowWin32 *window, pxWindowEvent *event);
-
 static LRESULT CALLBACK 
 pxWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam, void *p);
 
@@ -42,12 +36,7 @@ pxInitWindow(const pxWindowTags *tags, pxWindow **out)
     if ( window == NULL )
         goto pxCleanup;
     memset(window, 0, sizeof(pxWindowWin32));
-    window->isQueuing = PIX_FALSE; 
-    window->eventStart = window->eventQueue;
-    window->eventEnd = window->eventStart;
-    if ( ( window->eventQueueSemaphore = pxCreateSemaphore(0) ) == NULL || 
-         ( window->eventQueueMutex = pxCreateMutex() )          == NULL
-       )
+    if ( ( result = _pxInitBaseWindow(tags, &window->base) ) != PIX_SUCCESS )
         goto pxCleanup;
     if ( ( wndProcThunk = pxCreateWndProcThunk(pxWindowProc, window) ) == NULL )
         goto pxCleanup;
@@ -81,15 +70,15 @@ pxInitWindow(const pxWindowTags *tags, pxWindow **out)
         if ( ( result = pxCreateContext(&window->base) ) != PIX_SUCCESS )
             goto pxCleanup;
     }
+    if ( tags->tags & PIX_WINDOW_TAG_EVENT_MASK ) {
+
+    }
     ShowWindow(window->win32HWND, SW_NORMAL);
     *out = &window->base;
     return PIX_SUCCESS;
     pxCleanup:
     if ( window != NULL ) {
-        if ( window->eventQueueSemaphore != NULL )
-            pxDestroySemaphore(window->eventQueueSemaphore);
-        if ( window->eventQueueMutex != NULL )
-            pxDestroyMutex(window->eventQueueMutex);
+        _pxDestroyBaseWindow(&window->base);
         if ( window->win32HWND != NULL )
             DestroyWindow(window->win32HWND);
         if ( classInit )
@@ -115,7 +104,7 @@ pxWindowQueueEvents(struct pxWindow *base, pxBool block)
 {
     MSG msg = {0};
     PIX_GET_WIN32_INSTANCE(base);
-    window->isQueuing = PIX_TRUE; 
+    window->base.isQueuing = PIX_TRUE; 
     if ( block && GetMessage(&msg, window->win32HWND, 0, 0) != 0 ) {
         TranslateMessage(&msg);
         DispatchMessage(&msg);
@@ -131,23 +120,25 @@ pxWindowDispatchEvents(struct pxWindow *base)
 {
     pxWindowEvent event;
     PIX_GET_WIN32_INSTANCE(base);
-    while ( _pxDequeueEvent(window, &event) == PIX_SUCCESS ) {
+    while ( pxDequeueEvent(&window->base, PIX_WINDOW_EVENT_TYPE_MAX, &event) == PIX_SUCCESS ) {
         switch ( event.eventType ) {
-            case PIX_WINDOW_EVENT_EXPOSE:
+            case PIX_WINDOW_EVENT_TYPE_EXPOSE:
                 if (base->exposeCallback != NULL)
                     base->exposeCallback(base);
                 break;
-            case PIX_WINDOW_EVENT_POS:
+            case PIX_WINDOW_EVENT_TYPE_POS:
                 if (base->posCallback != NULL)
-                    base->posCallback(base, event.event.positionEvent.x, event.event.positionEvent.y);
+                    base->posCallback(base, event.positionEvent.x, event.positionEvent.y);
                 break;
-            case PIX_WINDOW_EVENT_SIZE:
+            case PIX_WINDOW_EVENT_TYPE_SIZE:
                 if (base->sizeCallback != NULL)
-                    base->sizeCallback(base, event.event.sizeEvent.width, event.event.sizeEvent.height);
+                    base->sizeCallback(base, event.sizeEvent.width, event.sizeEvent.height);
                 break;
-            case PIX_WINDOW_EVENT_CLOSE:
+            case PIX_WINDOW_EVENT_TYPE_CLOSE:
                 if (base->closeCallback != NULL)
                     base->closeCallback(base);
+                break;
+            default:
                 break;
         }
     }
@@ -158,7 +149,7 @@ pxWindowPollEvents(struct pxWindow *base, pxBool block)
 {
     MSG msg = {0};
     PIX_GET_WIN32_INSTANCE(base);
-    window->isQueuing = PIX_FALSE; 
+    window->base.isQueuing = PIX_FALSE; 
     if ( block && GetMessage(&msg, window->win32HWND, 0, 0) != 0 ) {
         TranslateMessage(&msg);
         DispatchMessage(&msg);
@@ -262,62 +253,11 @@ pxResult
 pxDestroyWindow(pxWindow *base)
 {
     PIX_GET_WIN32_INSTANCE(base); 
-    pxDestroySemaphore(window->eventQueueSemaphore);
-    pxDestroyMutex(window->eventQueueMutex); 
     if ( base->title != NULL )
         free(base->title);
+    _pxDestroyBaseWindow(base);
     free(window); 
     return PIX_SUCCESS;
-}
-
-pxResult
-_pxEnqueueEvent(pxWindowWin32 *window, pxWindowEvent event, pxBool overwrite)
-{
-#define QUEUE_NEXT(P) ( ( (P) == (window->eventQueue + (PIX_WINDOW_EVENT_QUEUE_SIZE - 1)) ) ? window->eventQueue : (P) + 1 )
-    pxResult result;
-    pxWindowEvent *next;
-    PIX_ASSERT(window != NULL);
-    PIX_ASSERT(PIX_WINDOW_EVENT_QUEUE_SIZE > 1); 
-    if ( ( result = pxLockMutex(window->eventQueueMutex) ) != PIX_SUCCESS )
-        return result;
-    next = QUEUE_NEXT(window->eventEnd);
-    if ( window->eventStart == next ) {
-        if ( overwrite ) {
-            window->eventStart = QUEUE_NEXT(window->eventStart);
-            window->eventEnd = QUEUE_NEXT(window->eventEnd);
-            *window->eventEnd = event; 
-            pxReleaseMutex(window->eventQueueMutex);
-            return 1;
-        }
-        pxReleaseMutex(window->eventQueueMutex);
-        return PIX_ERR_BUF_FULL;
-    }
-    *window->eventEnd = event;
-    if ( next != window->eventStart )
-        window->eventEnd = next;
-    pxReleaseSemaphore(window->eventQueueSemaphore);
-    pxReleaseMutex(window->eventQueueMutex);
-    return PIX_SUCCESS;
-}
-
-pxResult
-_pxDequeueEvent(pxWindowWin32 *window, pxWindowEvent *event)
-{
-    pxResult result;
-    if ( ( result = pxTryLockSemaphore(window->eventQueueSemaphore) ) != PIX_SUCCESS ) {
-        if (result == PIX_ERR_TIMEOUT)
-            return PIX_ERR_BUF_EMPTY; 
-        return result;
-    }
-    if ( ( result = pxLockMutex(window->eventQueueMutex) ) != PIX_SUCCESS) 
-        return result;
-    if ( window->eventStart == window->eventEnd )
-        return PIX_ERR_BUF_EMPTY; 
-    *event = *window->eventStart;
-    window->eventStart = QUEUE_NEXT(window->eventStart);
-    pxReleaseMutex(window->eventQueueMutex); 
-    return PIX_SUCCESS;
-#undef QUEUE_NEXT
 }
 
 LRESULT CALLBACK 
@@ -329,11 +269,11 @@ pxWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, void *p)
             PAINTSTRUCT paint;
             BeginPaint(hWnd, &paint);
             EndPaint(hWnd, &paint);
-            if (window->isQueuing) {
+            if (window->base.isQueuing) {
                 pxWindowEvent event = {
-                    .eventType = PIX_WINDOW_EVENT_EXPOSE,
+                    .eventType = PIX_WINDOW_EVENT_TYPE_EXPOSE,
                 };
-                _pxEnqueueEvent(window, event, PIX_TRUE); 
+                _pxEnqueueEvent(&window->base, event, PIX_TRUE); 
             } else if (window->base.exposeCallback != NULL) {
                 window->base.exposeCallback(&window->base);
             }
@@ -342,28 +282,26 @@ pxWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, void *p)
         case WM_SIZE:
             window->base.width = LOWORD(lParam);
             window->base.height = HIWORD(lParam);
-            if (window->isQueuing) {
+            if (window->base.isQueuing) {
                 pxWindowEvent event = {
-                    .eventType = PIX_WINDOW_EVENT_SIZE,
-                    .event = {
-                        .sizeEvent = {
-                            .width = window->base.width,
-                            .height = window->base.height
-                        }
+                    .eventType = PIX_WINDOW_EVENT_TYPE_SIZE,
+                    .sizeEvent = {
+                        .width = window->base.width,
+                        .height = window->base.height
                     }
                 };
-                _pxEnqueueEvent(window, event, PIX_TRUE); 
+                _pxEnqueueEvent(&window->base, event, PIX_TRUE); 
             } else if (window->base.sizeCallback != NULL) {
                 window->base.sizeCallback(&window->base, window->base.width, window->base.height);
             }
             return 0;
         case WM_DESTROY:
             window->base.shouldClose = PIX_TRUE; 
-            if (window->isQueuing) {
+            if (window->base.isQueuing) {
                 pxWindowEvent event = {
-                    .eventType = PIX_WINDOW_EVENT_CLOSE,
+                    .eventType = PIX_WINDOW_EVENT_TYPE_CLOSE,
                 };
-               _pxEnqueueEvent(window, event, PIX_TRUE); 
+               _pxEnqueueEvent(&window->base, event, PIX_TRUE); 
             } else if (window->base.closeCallback != NULL) {
                 window->base.closeCallback(&window->base);
             }

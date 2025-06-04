@@ -160,7 +160,8 @@ pxResult
 pxLockSemaphore(pxSemaphore *semaphore)
 {
     DWORD lock;
-    PIX_ASSERT(semaphore != NULL);
+    if ( semaphore == NULL )
+        return PIX_ERR_INVALID_ARG;
     lock = WaitForSingleObject(semaphore->hnd, INFINITE);
     if ( lock == WAIT_ABANDONED || lock == WAIT_OBJECT_0 )
         return PIX_SUCCESS;
@@ -171,7 +172,8 @@ pxResult
 pxTryLockSemaphore(pxSemaphore *semaphore)
 {
     DWORD lock;
-    PIX_ASSERT(semaphore != NULL);
+    if ( semaphore == NULL )
+        return PIX_ERR_INVALID_ARG;
     lock = WaitForSingleObject(semaphore->hnd, 0);
     if ( lock == WAIT_ABANDONED || lock == WAIT_OBJECT_0 )
         return PIX_SUCCESS;
@@ -213,7 +215,8 @@ pxResult
 pxLockMutex(pxMutex *mutex)
 {
     DWORD lock;
-    PIX_ASSERT(mutex != NULL);
+    if ( mutex == NULL )
+        return PIX_ERR_INVALID_ARG;
     lock = WaitForSingleObject(mutex->hnd, INFINITE);
     if ( lock == WAIT_ABANDONED || lock == WAIT_OBJECT_0 )
         return PIX_SUCCESS;
@@ -224,7 +227,8 @@ pxResult
 pxTryLockMutex(pxMutex *mutex)
 {
     DWORD lock;
-    PIX_ASSERT(mutex != NULL);
+    if ( mutex == NULL )
+        return PIX_ERR_INVALID_ARG;
     lock = WaitForSingleObject(mutex->hnd, 0);
     if ( lock == WAIT_ABANDONED || lock == WAIT_OBJECT_0 )
         return PIX_SUCCESS;

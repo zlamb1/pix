@@ -11,6 +11,7 @@ add_library(${LIB_NAME}
     "src/libgl/pix_gl.c"
     "src/libgl/pix_gl_win32.c"
     "src/libwin/pix_window.c"
+    "src/libwin/pix_window_internal.c"
     "src/libwin/win32/pix_bitmap_win32.c"
     "src/libwin/win32/pix_context_win32.c"
     "src/libwin/win32/pix_thunk.c"
@@ -20,7 +21,7 @@ add_library(${LIB_NAME}
     "src/libtime/pix_time_win32.c"
 )
 
-target_compile_features(${LIB_NAME} PRIVATE c_std_99)
+target_compile_features(${LIB_NAME} PRIVATE c_std_11)
 target_include_directories(${LIB_NAME} PUBLIC include)
 
 target_compile_options(${LIB_NAME} PRIVATE $ENV{LIB_COMPILE_OPTIONS})

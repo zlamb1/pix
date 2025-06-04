@@ -85,7 +85,10 @@ renderThread(void *arg)
 int
 main(void)
 {
-    pxWindowTags windowTags = { .tags = PIX_WINDOW_TAG_GL_CONTEXT };
+    pxWindowTags windowTags = { 
+        .tags = PIX_WINDOW_TAG_GL_CONTEXT | PIX_WINDOW_TAG_EVENT_MASK,
+        .eventMask = PIX_WINDOW_EVENT_SIZE_MASK
+    };
     pxWindow *window;
     pxThread *thread;
     if ( pxInit() != PIX_SUCCESS )

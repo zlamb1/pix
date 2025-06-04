@@ -67,3 +67,40 @@ pxInitFrameBitmap(pxWindow *base, void *pixels, pxBitmap **out)
 {
     return pxInitBitmap(base, base->width, base->height, pixels, out);
 }
+
+void
+pxWindowEventTypeMaskAll(pxWindow *base)
+{
+    PIX_ASSERT(base != NULL);
+    base->eventMask = 0xFFFFFFFF;
+}
+
+void
+pxWindowEventTypeMaskNone(pxWindow *base)
+{
+    PIX_ASSERT(base != NULL);
+    base->eventMask = 0x0;
+}
+
+void
+pxWindowSetEventTypeMask(pxWindow *base, pxWindowEventTypeMask eventMask)
+{
+    PIX_ASSERT(base != NULL);
+    base->eventMask = eventMask;
+}
+
+void
+pxWindowMaskEventType(pxWindow *base, pxWindowEventType eventType, pxBool masked)
+{
+    pxUnsigned mask;
+    PIX_ASSERT(base != NULL);
+    PIX_ASSERT(eventType >= 0 && eventType < PIX_WINDOW_EVENT_TYPE_MAX);
+    mask = _pxEventMasks[eventType];
+    if (masked) {
+        base->eventMask |= mask;
+    } else {
+        mask = ~mask;
+        base->eventMask &= mask;
+    }
+    
+}

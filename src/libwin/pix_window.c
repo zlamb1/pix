@@ -1,63 +1,69 @@
 #include <string.h>
 
-#include "pix_assert.h"
-
-#include "pix_window_internal.h"
+#include "libbase/pix_assert.h"
 
 #include "libwin/pix_window.h"
 
-int 
-pxWindowShouldClose(struct pxWindow *win)
+#include "pix_window_internal.h"
+
+pxBool 
+pxWindowShouldClose(pxWindow *base)
 {
-    PIX_ASSERT(win != NULL);
-    return win->shouldClose; 
+    PIX_ASSERT(base != NULL);
+    return base->shouldClose; 
 }
 
 void *
-pxWindowGetUserPointer(struct pxWindow *win)
+pxWindowGetUserPointer(pxWindow *base)
 {
-    PIX_ASSERT(win != NULL);
-    return win->userPointer; 
+    PIX_ASSERT(base != NULL);
+    return base->userPointer; 
 }
 
 void 
-pxWindowSetUserPointer(struct pxWindow *win, void *userPointer)
+pxWindowSetUserPointer(pxWindow *base, void *userPointer)
 {
-    PIX_ASSERT(win != NULL); 
-    win->userPointer = userPointer; 
+    PIX_ASSERT(base != NULL); 
+    base->userPointer = userPointer; 
 }
 
 void
-pxWindowSetExposeCallback(struct pxWindow *win, pxWindowExposeCallback callback)
+pxWindowSetExposeCallback(pxWindow *base, pxWindowExposeCallback callback)
 {
-    PIX_ASSERT(win != NULL); 
-    win->exposeCallback = callback; 
+    PIX_ASSERT(base != NULL); 
+    base->exposeCallback = callback; 
 }
 
 void 
-pxWindowSetPosCallback(struct pxWindow *win, pxWindowPosCallback callback)
+pxWindowSetPosCallback(pxWindow *base, pxWindowPosCallback callback)
 {
-    PIX_ASSERT(win != NULL); 
-    win->posCallback = callback; 
+    PIX_ASSERT(base != NULL); 
+    base->posCallback = callback; 
 }
 
 void 
-pxWindowSetSizeCallback(struct pxWindow *win, pxWindowSizeCallback callback)
+pxWindowSetSizeCallback(pxWindow *base, pxWindowSizeCallback callback)
 {
-    PIX_ASSERT(win != NULL); 
-    win->sizeCallback = callback; 
+    PIX_ASSERT(base != NULL); 
+    base->sizeCallback = callback; 
 }
 
 void 
-pxWindowSetCloseCallback(struct pxWindow *win, pxWindowCloseCallback callback)
+pxWindowSetCloseCallback(pxWindow *base, pxWindowCloseCallback callback)
 {
-    PIX_ASSERT(win != NULL); 
-    win->closeCallback = callback; 
+    PIX_ASSERT(base != NULL); 
+    base->closeCallback = callback; 
 }
 
-void 
-pxWindowSetTitle(struct pxWindow *win, const char *title)
+pxResult 
+pxWindowSetTitle(pxWindow *base, const char *title)
 {
-    PIX_ASSERT(win != NULL);
-    pxWindowSetTitleWithLength(win, title, strlen(title)); 
+    PIX_ASSERT(base != NULL);
+    return pxWindowSetTitleWithLength(base, title, strlen(title)); 
+}
+
+pxResult
+pxInitFrameBitmap(pxWindow *base, void *pixels, pxBitmap **out)
+{
+    return pxInitBitmap(base, base->width, base->height, pixels, out);
 }

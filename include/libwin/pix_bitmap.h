@@ -11,11 +11,12 @@
 #include <immintrin.h>
 #include <xmmintrin.h>
 
-#include "pix_assert.h"
+#include "libbase/pix_assert.h"
+
 #include "pix_color.h"
 #include "pix_vec2.h"
 
-struct 
+typedef struct 
 pxBitmap 
 {
     unsigned char *data; 
@@ -27,7 +28,7 @@ pxBitmap
 
     unsigned mask[3];
     unsigned shift[3];
-};
+} pxBitmap;
 
 /**
  * color format:
@@ -35,7 +36,7 @@ pxBitmap
  */
 
 static inline unsigned 
-pxGetPixel(struct pxBitmap *bitmap, int x, int y)
+pxGetPixel(pxBitmap *bitmap, int x, int y)
 {
     unsigned bufcolor;
     PIX_ASSERT(bitmap != NULL);
@@ -47,7 +48,7 @@ pxGetPixel(struct pxBitmap *bitmap, int x, int y)
 }
 
 static inline void 
-pxSetPixel(struct pxBitmap *bitmap, int x, int y, unsigned color)
+pxSetPixel(pxBitmap *bitmap, int x, int y, unsigned color)
 {
     unsigned char *comp; 
 
@@ -61,7 +62,7 @@ pxSetPixel(struct pxBitmap *bitmap, int x, int y, unsigned color)
 }
 
 static inline void 
-pxSetPixelSafe(struct pxBitmap *bitmap, int x, int y, unsigned color)
+pxSetPixelSafe(pxBitmap *bitmap, int x, int y, unsigned color)
 {
     PIX_ASSERT(bitmap != NULL);
     if ((x | y) < 0 || x >= (long long) bitmap->width || y >= (long long) bitmap->height)
@@ -95,7 +96,7 @@ pxMemset32(void *p, int v, size_t n)
 }
 
 static inline void
-pxClearColor(struct pxBitmap *bitmap, unsigned color)
+pxClearColor(pxBitmap *bitmap, unsigned color)
 {
     unsigned *data, fcolor, stride;
 
@@ -118,7 +119,7 @@ pxClearColor(struct pxBitmap *bitmap, unsigned color)
 }
 
 static inline void 
-pxClearHLine(struct pxBitmap *bitmap, unsigned y, unsigned x0, unsigned x1, unsigned color)
+pxClearHLine(pxBitmap *bitmap, unsigned y, unsigned x0, unsigned x1, unsigned color)
 {
     unsigned *data, fcolor;
 
@@ -137,7 +138,7 @@ pxClearHLine(struct pxBitmap *bitmap, unsigned y, unsigned x0, unsigned x1, unsi
 }
 
 static inline void
-pxDrawLine(struct pxBitmap *bitmap, int x0, int y0, int x1, int y1, unsigned color)
+pxDrawLine(pxBitmap *bitmap, int x0, int y0, int x1, int y1, unsigned color)
 {
     float x, y, dx = x1 - x0, dy = y1 - y0;
     int steps = fabsf(dx) > fabsf(dy) ? fabsf(dx) : fabsf(dy);
@@ -171,7 +172,7 @@ pxSignedArea(pxVec2 a, pxVec2 b, pxVec2 c)
 }
 
 static inline void 
-pxDrawTriangle(struct pxBitmap *bitmap, pxVec2 a, pxVec2 b, pxVec2 c, pxColorRgba colors[3])
+pxDrawTriangle(pxBitmap *bitmap, pxVec2 a, pxVec2 b, pxVec2 c, pxColorRgba colors[3])
 {
     pxVec2 bbBoxMin = pxMinVec2(pxMinVec2(a, b), c), 
            bbBoxMax = pxMaxVec2(pxMaxVec2(a, b), c),

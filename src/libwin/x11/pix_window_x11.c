@@ -1,17 +1,20 @@
-#include "libwin/pix_bitmap.h"
-#include "pix_window_internal.h"
+typedef int NON_EMPTY_TRANSLATION_UNIT; 
+
 #ifdef PIX_PLATFORM_LINUX
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "libwin/pix_bitmap.h"
+
 #include "pix_window_x11.h"
 #include "pix_bitmap_x11.h"
+#include "pix_window_internal.h"
 
 #include "pix_assert.h"
 
-struct pxWindow * 
+pxWindow * 
 pxWindowInit(void)
 {
     const xcb_setup_t *setup; 
@@ -27,8 +30,8 @@ pxWindowInit(void)
     xcb_intern_atom_cookie_t win_wm_protocols_cookie;
     xcb_intern_atom_cookie_t win_wm_delete_cookie; 
 
-    struct pxWindowX11 *win = malloc(sizeof(struct pxWindowX11));
-    memset(win, 0, sizeof(struct pxWindowX11));
+    pxWindowX11 *win = malloc(sizeof(pxWindowX11));
+    memset(win, 0, sizeof(pxWindowX11));
 
     if (win == NULL)
         return NULL; 
@@ -106,7 +109,7 @@ pxWindowInit(void)
 }
 
 static void 
-pxWindowHandleEvent(struct pxWindowX11 *win, xcb_generic_event_t *e)
+pxWindowHandleEvent(pxWindowX11 *win, xcb_generic_event_t *e)
 {
     switch (e->response_type & ~0x80)
     {
@@ -160,9 +163,9 @@ pxWindowHandleEvent(struct pxWindowX11 *win, xcb_generic_event_t *e)
 }
 
 void
-pxWindowPollEvents(struct pxWindow *_win)
+pxWindowPollEvents(pxWindow *_win)
 {
-    struct pxWindowX11 *win = (struct pxWindowX11 *) _win;
+    pxWindowX11 *win = (pxWindowX11 *) _win;
     xcb_generic_event_t *e;
 
     while ((e = xcb_poll_for_event(win->xcbConnection)) != NULL)
@@ -170,51 +173,51 @@ pxWindowPollEvents(struct pxWindow *_win)
 }
 
 void 
-pxWindowWaitEvents(struct pxWindow *_win)
+pxWindowWaitEvents(pxWindow *_win)
 {
-    struct pxWindowX11 *win = (struct pxWindowX11 *) _win;
+    pxWindowX11 *win = (pxWindowX11 *) _win;
     xcb_generic_event_t *e;
 
     while (!pxWindowShouldClose(_win) && (e = xcb_wait_for_event(win->xcbConnection)) != NULL)
         pxWindowHandleEvent(win, e);
 }
 
-struct pxWindowPos 
-pxWindowGetPos(struct pxWindow *_win)
+pxWindowPos 
+pxWindowGetPos(pxWindow *_win)
 {
-    struct pxWindowX11 *win;
+    pxWindowX11 *win;
     PIX_ASSERT(_win != NULL);
-    win = (struct pxWindowX11 *) _win;
+    win = (pxWindowX11 *) _win;
 
-    return (struct pxWindowPos) {
+    return (pxWindowPos) {
         .x = win->x,
         .y = win->y
     };
 }
 
 void 
-pxWindowSetPos(struct pxWindow *win, int x, int y)
+pxWindowSetPos(pxWindow *win, int x, int y)
 {
     (void) win;
     (void) x;
     (void) y;
 }
 
-struct pxWindowSize
-pxWindowGetSize(struct pxWindow *_win)
+pxWindowSize
+pxWindowGetSize(pxWindow *_win)
 {
-    struct pxWindowX11 *win;
+    pxWindowX11 *win;
     PIX_ASSERT(_win != NULL);
-    win = (struct pxWindowX11 *) _win;
+    win = (pxWindowX11 *) _win;
     
-    return (struct pxWindowSize) {
+    return (pxWindowSize) {
         .width = win->width,
         .height = win->height
     };
 }
 
 void 
-pxWindowSetSize(struct pxWindow *win, unsigned int width, unsigned int height)
+pxWindowSetSize(pxWindow *win, unsigned int width, unsigned int height)
 {
     (void) win;
     (void) width;
@@ -222,20 +225,20 @@ pxWindowSetSize(struct pxWindow *win, unsigned int width, unsigned int height)
 }
 
 const char *
-pxWindowGetTitle(struct pxWindow *_win)
+pxWindowGetTitle(pxWindow *_win)
 {
-    struct pxWindowX11 *win;
+    pxWindowX11 *win;
     PIX_ASSERT(_win != NULL);
-    win = (struct pxWindowX11 *) _win;
+    win = (pxWindowX11 *) _win;
     return win->title; 
 }
 
 void
-pxWindowSetTitleWithLength(struct pxWindow *_win, const char *title, unsigned int len)
+pxWindowSetTitleWithLength(pxWindow *_win, const char *title, unsigned int len)
 {
-    struct pxWindowX11 *win;
+    pxWindowX11 *win;
     PIX_ASSERT(_win != NULL);
-    win = (struct pxWindowX11 *) _win;
+    win = (pxWindowX11 *) _win;
 
     xcb_change_property(
         win->xcbConnection, 
@@ -252,46 +255,37 @@ pxWindowSetTitleWithLength(struct pxWindow *_win, const char *title, unsigned in
     win->title = title;
 }
 
-struct pxBitmap *
-pxWindowGetBitmap(struct pxWindow *_win, void *base)
+pxBitmap *
+pxWindowGetBitmap(pxWindow *base, unsigned width, unsigned height, void *pixels)
 {
-    struct pxWindowX11 *win;
-    PIX_ASSERT(_win);
-    win = (struct pxWindowX11 *) _win;
-    return pxWindowGetSizedBitmap(_win, win->width, win->height, base);
-}
+    pxWindowX11 *win;
+    pxBitmapX11 *bitmap;
 
-struct pxBitmap *
-pxWindowGetSizedBitmap(struct pxWindow *_win, unsigned width, unsigned height, void *base)
-{
-    struct pxWindowX11 *win;
-    struct pxBitmapX11 *bitmap;
-
-    PIX_ASSERT(_win);
-    win = (struct pxWindowX11 *) _win; 
+    PIX_ASSERT(base != NULL);
+    win = (pxWindowX11 *) base; 
     
     bitmap = pix_bitmap_x11_init_with_base(
         win,
         win->xcbScreen->root_depth, 
         width, 
         height, 
-        base
+        pixels
     );
 
     return &bitmap->base;
 }
 
 void 
-pxWindowBlitBitmap(struct pxWindow *_win, struct pxBitmap *_bitmap)
+pxWindowBlitBitmap(pxWindow *_win, pxBitmap *_bitmap)
 {
-    struct pxWindowX11 *win;
-    struct pxBitmapX11 *bitmap;
+    pxWindowX11 *win;
+    pxBitmapX11 *bitmap;
 
     PIX_ASSERT(_win != NULL);
     PIX_ASSERT(_bitmap != NULL); 
 
-    win = (struct pxWindowX11 *) _win; 
-    bitmap = (struct pxBitmapX11 *) _bitmap;
+    win = (pxWindowX11 *) _win; 
+    bitmap = (pxBitmapX11 *) _bitmap;
 
     xcb_image_put(
         win->xcbConnection,
@@ -307,11 +301,11 @@ pxWindowBlitBitmap(struct pxWindow *_win, struct pxBitmap *_bitmap)
 }
 
 void 
-pxDestroyWindow(struct pxWindow *_win)
+pxDestroyWindow(pxWindow *_win)
 {
-    struct pxWindowX11 *win; 
+    pxWindowX11 *win; 
     PIX_ASSERT(_win != NULL); 
-    win = (struct pxWindowX11 *) _win; 
+    win = (pxWindowX11 *) _win; 
     xcb_disconnect(win->xcbConnection); 
     free(win); 
 }

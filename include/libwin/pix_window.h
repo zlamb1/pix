@@ -1,104 +1,124 @@
+#ifndef PIX_WINDOW_H
+#define PIX_WINDOW_H 1
+
+#include "libbase/pix_type.h"
+
 #include "libwin/pix_bitmap.h"
-#ifndef pxWindow_H
-#define pxWindow_H 1
 
-struct 
-pxWindow;
+typedef enum
+pxWindowTag
+{
+    PIX_WINDOW_TAG_POS        = 0x1,
+    PIX_WINDOW_TAG_SIZE       = 0x2,
+    PIX_WINDOW_TAG_TITLE      = 0x4,
+    PIX_WINDOW_TAG_GL_CONTEXT = 0x8
+} pxWindowTag;
 
-struct
+typedef struct
+pxWindowTags
+{
+    pxWindowTag tags;
+    pxInt x, y; 
+    pxUnsigned width, height;
+    pxChar *title; 
+} pxWindowTags;
+
+typedef struct 
+pxWindow pxWindow;
+
+typedef struct
 pxWindowPos
 {
-    int x, y; 
-};
+    pxInt x, y; 
+} pxWindowPos;
 
-struct 
+typedef struct 
 pxWindowSize
 {
-    unsigned int width, height; 
-};
+    pxUnsigned width, height; 
+} pxWindowSize;
 
-typedef void (*pxWindowExposeCallback)(struct pxWindow *);
-typedef void (*pxWindowPosCallback)(struct pxWindow *, int, int); 
-typedef void (*pxWindowSizeCallback)(struct pxWindow *, unsigned int, unsigned int);
-typedef void (*pxWindowCloseCallback)(struct pxWindow *); 
+typedef void (*pxWindowExposeCallback)(pxWindow *);
+typedef void (*pxWindowPosCallback)(pxWindow *, pxInt, pxInt); 
+typedef void (*pxWindowSizeCallback)(pxWindow *, pxUnsigned, pxUnsigned);
+typedef void (*pxWindowCloseCallback)(pxWindow *); 
 
-struct pxWindow *
-pxWindowInit(void);
+pxResult
+pxInitWindow(const pxWindowTags *tags, pxWindow **window);
 
-int 
-pxWindowShouldClose(struct pxWindow *win);
+pxBool 
+pxWindowShouldClose(pxWindow *window);
 
 void *
-pxWindowGetUserPointer(struct pxWindow *win); 
+pxWindowGetUserPointer(pxWindow *window); 
 
 void 
-pxWindowSetUserPointer(struct pxWindow *win, void *user_pointer); 
+pxWindowSetUserPointer(pxWindow *window, void *userPointer); 
 
 void
-pxWindowSetExposeCallback(struct pxWindow *win, pxWindowExposeCallback callback);
+pxWindowSetExposeCallback(pxWindow *window, pxWindowExposeCallback callback);
 
 void 
-pxWindowSetPosCallback(struct pxWindow *win, pxWindowPosCallback callback); 
+pxWindowSetPosCallback(pxWindow *window, pxWindowPosCallback callback); 
 
 void 
-pxWindowSetSizeCallback(struct pxWindow *win, pxWindowSizeCallback callback);
+pxWindowSetSizeCallback(pxWindow *window, pxWindowSizeCallback callback);
 
 void 
-pxWindowSetCloseCallback(struct pxWindow *win, pxWindowCloseCallback callback); 
-
-/**
- * process available events then return control
- */
+pxWindowSetCloseCallback(pxWindow *window, pxWindowCloseCallback callback); 
 
 void
-pxWindowPollEvents(struct pxWindow *win); 
-
-/**
- * process and wait for events (does not return control until window closes except for callbacks)
- */
-
-void 
-pxWindowWaitEvents(struct pxWindow *win);
-
-struct pxWindowPos
-pxWindowGetPos(struct pxWindow *win);
-
-void 
-pxWindowSetPos(struct pxWindow *win, int x, int y); 
-
-struct pxWindowSize
-pxWindowGetSize(struct pxWindow *win); 
-
-void 
-pxWindowSetSize(struct pxWindow *win, unsigned int width, unsigned int height); 
-
-const char *
-pxWindowGetTitle(struct pxWindow *win); 
+pxWindowQueueEvents(pxWindow *window, pxBool block);
 
 void
-pxWindowSetTitle(struct pxWindow *win, const char *title); 
+pxWindowDispatchEvents(pxWindow *window);
 
-void 
-pxWindowSetTitleWithLength(struct pxWindow *win, const char *title, unsigned int len); 
+void
+pxWindowPollEvents(pxWindow *window, pxBool block); 
 
-/**
- * returns NULL if bitmap is not supported by window or on error
- */
+pxWindowPos
+pxWindowGetPos(pxWindow *window);
 
-struct pxBitmap *
-pxWindowGetBitmap(struct pxWindow *win, void *base);
+pxResult 
+pxWindowSetPos(pxWindow *window, pxInt x, pxInt y); 
 
-struct pxBitmap *
-pxWindowGetSizedBitmap(struct pxWindow *win, unsigned width, unsigned height, void *base); 
+pxWindowSize
+pxWindowGetSize(pxWindow *window); 
 
-/**
- * NO_OP if not supported by window
- */
+pxResult 
+pxWindowSetSize(pxWindow *window, pxUnsigned width, pxUnsigned height); 
 
-void 
-pxWindowBlitBitmap(struct pxWindow *win, struct pxBitmap *bitmap); 
+const pxChar *
+pxWindowGetTitle(pxWindow *window); 
 
-void 
-pxDestroyWindow(struct pxWindow *win);  
+pxResult
+pxWindowSetTitle(pxWindow *window, const pxChar *title); 
+
+pxResult 
+pxWindowSetTitleWithLength(pxWindow *window, const pxChar *title, pxUnsigned len); 
+
+pxResult
+pxWindowInvalidateFrame(pxWindow *window); 
+
+pxResult
+pxWindowSwapBuffers(pxWindow *window);
+
+pxResult
+pxInitFrameBitmap(pxWindow *window, void *base, pxBitmap **bitmap);
+
+pxResult
+pxInitBitmap(pxWindow *window, pxUnsigned width, pxUnsigned height, void *base, pxBitmap **bitmap); 
+
+pxResult 
+pxBlitBitmap(pxWindow *window, pxBitmap *bitmap); 
+
+pxResult
+pxDestroyBitmap(pxWindow *window, pxBitmap *bitmap); 
+
+pxResult
+pxCloseWindow(pxWindow *window);
+
+pxResult
+pxDestroyWindow(pxWindow *window);  
 
 #endif

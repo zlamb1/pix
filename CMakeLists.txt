@@ -7,23 +7,28 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 file(GLOB_RECURSE SRC_FILES src/*.c)
 
-# library
-
-add_library(${LIB_NAME} ${SRC_FILES})
-target_compile_features(${LIB_NAME} PRIVATE c_std_99)
-target_include_directories(${LIB_NAME} PUBLIC include)
-target_compile_options(${LIB_NAME} PRIVATE 
-    -Wall -Wextra -Wpedantic -Werror -Wshadow -Wpointer-arith -Wstrict-prototypes -Wmissing-prototypes
-    -Wno-missing-braces -Wno-missing-field-initializers -Wbad-function-cast -Winline -Wundef
-    -Wunreachable-code -Wlogical-op -Wredundant-decls -Wfloat-equal -Wcast-align -Wcast-qual
-    -Wdeclaration-after-statement -Wmissing-include-dirs -Wnested-externs -Wsequence-point
-    -Wswitch -Wunused-but-set-parameter -Wwrite-strings -Wunused-result -pedantic-errors 
-    --param max-inline-insns-single=1000 -O2
+add_library(${LIB_NAME} 
+    "src/libgl/pix_gl.c"
+    "src/libgl/pix_gl_win32.c"
+    "src/libwin/pix_window.c"
+    "src/libwin/win32/pix_bitmap_win32.c"
+    "src/libwin/win32/pix_context_win32.c"
+    "src/libwin/win32/pix_thunk.c"
+    "src/libwin/win32/pix_window_win32.c"
+    "src/libwin/x11/pix_window_x11.c"
+    "src/libthread/pix_thread_win32.c"
+    "src/libtime/pix_time_win32.c"
 )
 
-target_compile_options(${LIB_NAME} PUBLIC -O2 -msse2 -mavx)
+target_compile_features(${LIB_NAME} PRIVATE c_std_99)
+target_include_directories(${LIB_NAME} PUBLIC include)
 
-target_link_libraries(${LIB_NAME} m)
+target_compile_options(${LIB_NAME} PRIVATE $ENV{LIB_COMPILE_OPTIONS})
+
+find_library(C_MATH_LIBRARY m)
+if(C_MATH_LIBRARY)
+    target_link_libraries(${LIB_NAME} PUBLIC ${C_MATH_LIBRARY})
+endif()
 
 if (LINUX)
     target_compile_definitions(${LIB_NAME} PUBLIC PIX_PLATFORM_LINUX)
@@ -43,21 +48,29 @@ if (LINUX)
         ${Fontconfig_LIBRARIES}
     )
     target_compile_options(${LIB_NAME} PRIVATE ${Fontconfig_COMPILE_OPTIONS})
+elseif(WIN32)
+    target_compile_definitions(${LIB_NAME} PUBLIC PIX_PLATFORM_WIN32)
+    # statically link CRT
+    set_property(TARGET "${LIB_NAME}" PROPERTY
+        MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 else()
     message(FATAL_ERROR "unsupported system")
 endif()
 
-# main executable
+function(create_example TARGET_NAME SRC_FILES)
+    add_executable("${TARGET_NAME}" "${SRC_FILES}")
+    if (WIN32)
+        set_target_properties("${TARGET_NAME}" PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    endif()
+    target_link_libraries("${TARGET_NAME}" "${LIB_NAME}")
+endfunction()
 
-add_executable(${LIB_NAME}_exe src/main.c)
-set_property(TARGET ${LIB_NAME}_exe PROPERTY OUTPUT_NAME ${PROJECT_NAME})
-target_link_libraries(${LIB_NAME}_exe ${PROJECT_NAME})
-
-# tests
+create_example("example_sf" "examples/sf_blit.c")
+create_example("example_hw" "examples/hw_blit.c")
+create_example("example_glfw" "examples/glfw_blit.c")
 
 function(folder_exists PATH_NAME)
     get_filename_component(RESOLVED_PATH "${PATH_NAME}" REALPATH)
-    message("RESOLVED_PATH: ${RESOLVED_PATH}")
     if (EXISTS "${RESOLVED_PATH}" AND IS_DIRECTORY "${RESOLVED_PATH}")
         set(RETVAR True PARENT_SCOPE)
     else()

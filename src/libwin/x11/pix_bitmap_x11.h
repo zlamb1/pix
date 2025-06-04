@@ -14,26 +14,26 @@
 
 #include "libwin/pix_bitmap.h"
 
-struct 
+typedef struct 
 pxBitmapX11
 {
-    struct pxBitmap base; 
+    pxBitmap base; 
 
     xcb_image_t *image; 
     xcb_gcontext_t gc; 
-};
+} pxBitmapX11;
 
 #define CHECK_MASK(mask) ((mask) == 0xFF || (mask) == 0xFF00 || (mask) == 0xFF0000)
 #define MASK_TO_SHIFT(mask) ((mask) == 0xFF ? 0 : ((mask) == 0xFF00 ? 8 : 16)); 
 
-static struct pxBitmapX11 * 
-pix_bitmap_x11_init_with_base(struct pxWindowX11 *win, unsigned char depth, unsigned width, unsigned height, void *base)
+static pxBitmapX11 * 
+pix_bitmap_x11_init_with_base(pxWindowX11 *win, unsigned char depth, unsigned width, unsigned height, void *base)
 {
     unsigned gc_mask, gc_values[1]; 
     xcb_depth_iterator_t depth_iter; 
     xcb_visualtype_iterator_t visualtype_iter; 
     xcb_visualtype_t *visualtype = NULL; 
-    struct pxBitmapX11 *bitmap;
+    pxBitmapX11 *bitmap;
 
     PIX_ASSERT(win != NULL)
 
@@ -43,11 +43,11 @@ pix_bitmap_x11_init_with_base(struct pxWindowX11 *win, unsigned char depth, unsi
     if (!height)
         height = 1; 
 
-    bitmap = malloc(sizeof(struct pxBitmapX11));
+    bitmap = malloc(sizeof(pxBitmapX11));
     if (bitmap == NULL)
         return NULL; 
 
-    memset(bitmap, 0, sizeof(struct pxBitmapX11)); 
+    memset(bitmap, 0, sizeof(pxBitmapX11)); 
 
     gc_mask = XCB_GC_FOREGROUND;
     gc_values[0] = 0; 
@@ -102,18 +102,18 @@ pix_bitmap_x11_init_with_base(struct pxWindowX11 *win, unsigned char depth, unsi
     return bitmap; 
 }
 
-static inline struct pxBitmapX11 * 
-pix_bitmap_x11_init(struct pxWindowX11 *win, unsigned char depth, unsigned width, unsigned height)
+static inline pxBitmapX11 * 
+pix_bitmap_x11_init(pxWindowX11 *win, unsigned char depth, unsigned width, unsigned height)
 {
     return pix_bitmap_x11_init_with_base(win, depth, width, height, NULL); 
 }
 
 static inline void
-pix_bitmap_x11_destroy(struct pxBitmap *_bitmap)
+pix_bitmap_x11_destroy(pxBitmap *_bitmap)
 {
-    struct pxBitmapX11 *bitmap;
+    pxBitmapX11 *bitmap;
     PIX_ASSERT(_bitmap != NULL);
-    bitmap = (struct pxBitmapX11 *) _bitmap; 
+    bitmap = (pxBitmapX11 *) _bitmap; 
     xcb_image_destroy(bitmap->image); 
     free(bitmap); 
 } 
